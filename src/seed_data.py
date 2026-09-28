@@ -20,14 +20,23 @@ def bootstrap_database():
         {"source_id": "SHAPARAK_SLA_09", "text": "Shaparak settlement cycles (Paya) occur strictly four times per working day: 03:45, 10:45, 13:45, and 17:45. Settlements initiated on Fridays will be held in escrow until the Saturday 03:45 cycle."}
     ]
     
-    embeddings = OpenAIEmbeddings(model="text-embedding-3-small")
+    api_key = os.getenv("OPENAI_API_KEY", "")
     
-    for d in docs:
-        vec = embeddings.embed_query(d["text"])
+    # Defensive Bootstrapping for CI/CD or testing without an API Key
+    if not api_key or not api_key.startswith("sk-"):
+        print("WARNING: Valid OPENAI_API_KEY not detected. Generating deterministic mock vectors to keep the container alive...")
+        # Generate dummy 1536-dimensional vectors for pgvector schema satisfaction
+        embeddings_list = [[0.01] * 1536 for _ in range(len(docs))]
+    else:
+        embeddings = OpenAIEmbeddings(model="text-embedding-3-small")
+        embeddings_list = [embeddings.embed_query(d["text"]) for d in docs]
+    
+    for idx, d in enumerate(docs):
         cur.execute("""
             INSERT INTO regulatory_docs (source_id, document_text, embedding) 
             VALUES (%s, %s, %s::vector)
-        """, (d["source_id"], d["text"], vec))
+            ON CONFLICT (source_id) DO NOTHING
+        """, (d["source_id"], d["text"], embeddings_list[idx]))
         
     conn.commit()
     cur.close()
