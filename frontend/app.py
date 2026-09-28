@@ -14,7 +14,9 @@ query = st.text_input("Enter regulatory compliance query:",
 if st.button("Audit Regulations", type="primary") and query:
     with st.spinner("Executing RRF search, grading context, and auditing citations..."):
         try:
-            res = requests.post(f"{API_URL}/query", json={"question": query}).json()
+            response = requests.post(f"{API_URL}/query", json={"question": query})
+            response.raise_for_status() # Catches 4xx and 5xx errors immediately
+            res = response.json()
             
             c1, c2 = st.columns([3, 2])
             
@@ -40,5 +42,5 @@ if st.button("Audit Regulations", type="primary") and query:
                     "execution_status": "COMPLETED",
                     "model": "gpt-4o-mini"
                 })
-        except Exception as e:
-            st.error(f"Failed to connect to API: {e}")
+        except requests.exceptions.RequestException as e:
+            st.error(f"API Communication Error: {e}")
