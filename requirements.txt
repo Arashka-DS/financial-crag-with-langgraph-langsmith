@@ -1,6 +1,6 @@
-langgraph==0.1.4
+langgraph==0.1.14
 langchain-core==0.2.16
-langchain-openai==0.1.14
+langchain-openai==0.1.17
 langchain-community==0.2.7
 pydantic==2.8.2
 psycopg2-binary==2.9.9
