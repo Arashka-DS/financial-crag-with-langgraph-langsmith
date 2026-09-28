@@ -75,24 +75,35 @@ def transform_query_node(state: CRAGState) -> Dict:
     }
 
 def generate_node(state: CRAGState) -> Dict:
-    """Synthesizes the final grounded financial answer."""
+    """Synthesizes the final grounded financial answer with exact citations."""
     question = state["question"]
     docs = state["documents"]
     trace = state.get("execution_trace", [])
 
-    context = "\n\n".join([f"[{d['category']}] {d['content']}" for d in docs])
+    # Pass document IDs along with content so the LLM can cite them
+    context = "\n\n".join([f"[DOC_ID: {d['doc_id']} | Category: {d['category']}] {d['content']}" for d in docs])
+    
     gen_prompt = ChatPromptTemplate.from_template(
         "You are an enterprise financial regulatory analyst. Answer the user question strictly based on the provided context.\n"
-        "If the context does not contain enough information, state that clearly. Never extrapolate.\n\n"
+        "You MUST provide citations linking your claims back to the DOC_ID.\n\n"
         "Context:\n{context}\n\n"
         "Question: {question}"
     )
-    generator = gen_prompt | llm
-    answer = generator.invoke({"context": context, "question": question}).content
+    
+    # Enforce Pydantic Structured Output for the generation itself
+    structured_generator = llm.with_structured_output(GroundedAnswer)
+    generator_chain = gen_prompt | structured_generator
+    
+    result = generator_chain.invoke({"context": context, "question": question})
 
-    trace.append("Synthesized initial response from validated chunks.")
-    return {"generation": answer, "execution_trace": trace}
-
+    trace.append(f"Synthesized response containing {len(result.citations)} exact citations.")
+    
+    return {
+        "generation": result.answer_text,
+        "citations": [cit.dict() for cit in result.citations],
+        "execution_trace": trace
+    }
+    
 def check_hallucinations_node(state: CRAGState) -> Dict:
     """Checks if generation is strictly grounded in the retrieved documents."""
     docs = state["documents"]
