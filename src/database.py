@@ -1,5 +1,6 @@
 import os
 import psycopg2
+from pgvector.psycopg2 import register_vector
 from typing import List, Dict
 
 class HybridSearchEngine:
@@ -13,27 +14,25 @@ class HybridSearchEngine:
         }
 
     def get_connection(self):
-        return psycopg2.connect(**self.conn_params)
+        conn = psycopg2.connect(**self.conn_params)
+        register_vector(conn)
+        return conn
 
     def hybrid_search(self, query_text: str, query_embedding: List[float], top_k: int = 4, rrf_k: int = 60) -> List[Dict]:
-        """
-        Executes dense vector search and sparse full-text search in PostgreSQL,
-        then merges and reranks using Reciprocal Rank Fusion (RRF).
-        """
         conn = self.get_connection()
         cursor = conn.cursor()
 
-        # 1. Dense Semantic Search via pgvector Cosine Distance
+        # 1. Dense Semantic Search via Cosine Distance
         cursor.execute("""
             SELECT doc_id, title, category, content, 
-                   1 - (embedding <=> %s::vector) AS dense_score
+                   1 - (embedding <=> %s) AS dense_score
             FROM financial_documents
-            ORDER BY embedding <=> %s::vector ASC
+            ORDER BY embedding <=> %s ASC
             LIMIT 10;
         """, (query_embedding, query_embedding))
         dense_results = cursor.fetchall()
 
-        # 2. Sparse Lexical Search via TSVector BM25-style ranking
+        # 2. Sparse Lexical Search via TSVector Full-Text
         cursor.execute("""
             SELECT doc_id, title, category, content, 
                    ts_rank_cd(tsv_content, plainto_tsquery('english', %s)) AS sparse_score
@@ -47,7 +46,7 @@ class HybridSearchEngine:
         cursor.close()
         conn.close()
 
-        # 3. Reciprocal Rank Fusion (RRF) Calculation: RRF_Score = SUM(1 / (k + rank))
+        # 3. Reciprocal Rank Fusion (RRF)
         rrf_scores = {}
         doc_store = {}
 
