@@ -9,7 +9,7 @@ class GroundedAnswer(BaseModel):
     answer_text: str = Field(description="The comprehensive financial answer.")
     citations: List[Citation] = Field(default_factory=list, description="List of citations mapping claims to source documents.")
 
-class CRAGState(TypedDict):
+class GraphState(TypedDict):
     question: str
     transformed_query: str
     documents: List[Dict[str, Any]]
