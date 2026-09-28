@@ -1,72 +1,35 @@
-import os
-import time
-import uuid
 from fastapi import FastAPI, HTTPException
-from pydantic import BaseModel, Field
-from langchain_core.tracers.context import collect_runs
-from src.graph import crag_app
+from pydantic import BaseModel
+from src.graph import crag_engine
 
-app = FastAPI(title="Financial Market Corrective RAG (CRAG) Engine", version="1.1.0")
+app = FastAPI(title="Financial CRAG Engine API", version="1.0.0")
 
-class QueryRequest(BaseModel):
-    question: str = Field(..., example="What is the maximum daily fiat on-ramp limit under Circular 402/12?")
+class QueryPayload(BaseModel):
+    question: str
 
-class CitationItem(BaseModel):
-    source_doc_id: int
-    exact_quote: str
-
-class QueryResponse(BaseModel):
-    answer: str
-    citations: list[CitationItem]
-    hallucination_passed: bool
-    retries: int
-    execution_trace: list[str]
-    latency_ms: float
-    langsmith_run_url: str | None
-
-@app.post("/query-crag", response_model=QueryResponse)
-def execute_crag(request: QueryRequest):
-    t0 = time.perf_counter()
-    
-    initial_state = {
-        "question": request.question,
-        "transformed_query": "",
-        "documents": [],
-        "generation": "",
-        "citations": [],
-        "doc_relevance_passed": False,
-        "hallucination_check_passed": False,
-        "retry_count": 0,
-        "execution_trace": []
-    }
-
+@app.post("/query")
+def execute_crag(payload: QueryPayload):
     try:
-        # Collect LangSmith trace context dynamically
-        with collect_runs() as cb:
-            final_state = crag_app.invoke(initial_state)
-            run_id = str(cb.traced_runs[0].id) if cb.traced_runs else None
-
-        latency = (time.perf_counter() - t0) * 1000
+        # Initialize LangGraph state
+        initial_state = {
+            "question": payload.question, 
+            "retry_count": 0, 
+            "web_fallback": False
+        }
         
-        project_name = os.getenv("LANGCHAIN_PROJECT", "financial-crag-engine")
-        run_url = f"https://smith.langchain.com/o/default/projects/p/{project_name}/r/{run_id}" if run_id else None
-
-        return QueryResponse(
-            answer=final_state["generation"],
-            citations=final_state.get("citations", []),
-            hallucination_passed=final_state["hallucination_check_passed"],
-            retries=final_state["retry_count"],
-            execution_trace=final_state["execution_trace"],
-            latency_ms=round(latency, 2),
-            langsmith_run_url=run_url
-        )
+        # Execute the self-correcting cyclic graph
+        final_state = crag_engine.invoke(initial_state)
+        
+        return {
+            "generation": final_state.get("generation"),
+            "citations": final_state.get("citations", []),
+            "retry_count": final_state.get("retry_count", 0),
+            "documents_retrieved": len(final_state.get("documents", [])),
+            "triggered_fallback": final_state.get("web_fallback", False)
+        }
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"CRAG Pipeline Error: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/health")
-def health():
-    return {
-        "status": "OPERATIONAL",
-        "vector_backend": "PostgreSQL 16 + pgvector (IVFFlat)",
-        "langsmith_tracing": os.getenv("LANGCHAIN_TRACING_V2", "false")
-    }
+def health_check():
+    return {"status": "ACTIVE", "engine_loaded": crag_engine is not None}
