@@ -1,56 +1,59 @@
 version: '3.8'
 
 services:
-  postgres_vector:
-    image: pgvector/pgvector:pg16
-    container_name: crag_pgvector
+  crag_postgres:
+    image: pgvector/pgvector:pg15
+    container_name: crag_vector_db
     environment:
       POSTGRES_USER: crag_admin
       POSTGRES_PASSWORD: crag_password
-      POSTGRES_DB: financial_knowledge_db
+      POSTGRES_DB: crag_warehouse
     ports:
       - "5432:5432"
     volumes:
       - ./init.sql:/docker-entrypoint-initdb.d/init.sql
-      - pgvector_data:/var/lib/postgresql/data
+      - pg_crag_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U crag_admin -d financial_knowledge_db"]
+      test: ["CMD-SHELL", "pg_isready -U crag_admin -d crag_warehouse"]
       interval: 5s
       timeout: 5s
       retries: 5
 
   crag_api:
     build: .
-    container_name: crag_api
+    container_name: crag_fastapi
     ports:
       - "8000:8000"
     environment:
-      - DB_HOST=postgres_vector
+      - DB_HOST=crag_postgres
       - DB_USER=crag_admin
       - DB_PASSWORD=crag_password
-      - DB_NAME=financial_knowledge_db
+      - DB_NAME=crag_warehouse
       - OPENAI_API_KEY=${OPENAI_API_KEY}
-      - OPENAI_BASE_URL=${OPENAI_BASE_URL:-https://api.openai.com/v1}
-      - LANGCHAIN_TRACING_V2=true
-      - LANGCHAIN_ENDPOINT=https://api.smith.langchain.com
       - LANGCHAIN_API_KEY=${LANGCHAIN_API_KEY}
-      - LANGCHAIN_PROJECT=financial-crag-engine
+      - LANGCHAIN_TRACING_V2=true
+      - LANGCHAIN_PROJECT=FinTech_CRAG
+    volumes:
+      - ./src:/app/src
+    command: >
+      bash -c "sleep 5 && python src/seed_data.py && 
+               uvicorn src.api:app --host 0.0.0.0 --port 8000 --reload"
     depends_on:
-      postgres_vector:
+      crag_postgres:
         condition: service_healthy
 
   crag_ui:
-    image: python:3.11-slim
-    container_name: crag_ui
+    build: .
+    container_name: crag_streamlit
     ports:
       - "8501:8501"
+    environment:
+      - API_URL=http://crag_api:8000
     volumes:
       - ./frontend:/app/frontend
-      - ./requirements.txt:/app/requirements.txt
-    working_dir: /app
-    command: bash -c "pip install streamlit requests && streamlit run frontend/app.py --server.address 0.0.0.0"
+    command: streamlit run frontend/app.py --server.address 0.0.0.0
     depends_on:
       - crag_api
 
 volumes:
-  pgvector_data:
+  pg_crag_data:
