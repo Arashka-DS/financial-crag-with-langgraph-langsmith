@@ -1,5 +1,6 @@
 import os
 import psycopg2
+from pgvector.psycopg2 import register_vector
 
 def hybrid_search(query_text: str, query_embedding: list, top_k: int = 5) -> list:
     """Executes Reciprocal Rank Fusion (RRF) directly in PostgreSQL."""
@@ -7,11 +8,12 @@ def hybrid_search(query_text: str, query_embedding: list, top_k: int = 5) -> lis
         host=os.getenv("DB_HOST", "localhost"),
         database=os.getenv("DB_NAME", "crag_warehouse"),
         user=os.getenv("DB_USER", "crag_admin"),
-        password=os.getenv("DB_PASSWORD", "crag_password")
+        password=os.getenv("DB_PASSWORD", "crag_password"),
+        port=5432
     )
+    register_vector(conn)
     cur = conn.cursor()
     
-    # RRF combines pgvector HNSW dense rank with tsvector GIN sparse rank
     rrf_query = """
     WITH semantic_search AS (
         SELECT id, source_id, document_text,
