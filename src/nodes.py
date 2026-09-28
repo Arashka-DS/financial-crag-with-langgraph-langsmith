@@ -85,4 +85,4 @@ def generate_node(state):
     ])
     
     res = (prompt | llm).invoke({"context": context_str, "question": question})
-    return {"generation": res.answer, "citations": [c.dict() for c in res.citations]}
+    return {"generation": res.answer, "citations": [c.model_dump() for c in res.citations]}
