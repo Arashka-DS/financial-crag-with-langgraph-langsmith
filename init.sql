@@ -1,14 +1,18 @@
 CREATE EXTENSION IF NOT EXISTS vector;
+CREATE EXTENSION IF NOT EXISTS pg_trgm;
 
-CREATE TABLE IF NOT EXISTS financial_documents (
-    doc_id SERIAL PRIMARY KEY,
+CREATE TABLE IF NOT EXISTS regulatory_docs (
+    id SERIAL PRIMARY KEY,
+    source_id VARCHAR(100) NOT NULL UNIQUE,
     title VARCHAR(255),
-    category VARCHAR(50), -- 'CBI_REGULATION', 'CRYPTO_TAX', 'EXCHANGE_POLICY'
-    content TEXT,
-    tsv_content tsvector GENERATED ALWAYS AS (to_tsvector('english', content)) STORED,
-    embedding vector(1536), -- Standard OpenAI / text-embedding-3 dimension
+    document_text TEXT NOT NULL,
+    fts_vector tsvector GENERATED ALWAYS AS (to_tsvector('simple', document_text)) STORED,
+    embedding vector(1536),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE INDEX IF NOT EXISTS idx_doc_embedding ON financial_documents USING ivfflat (embedding vector_cosine_ops) WITH (lists = 100);
-CREATE INDEX IF NOT EXISTS idx_doc_tsv ON financial_documents USING gin(tsv_content);
+-- Lexical Full-Text Search GIN Index
+CREATE INDEX IF NOT EXISTS idx_regulatory_docs_fts ON regulatory_docs USING gin(fts_vector);
+
+-- Dense Vector HNSW Cosine Index
+CREATE INDEX IF NOT EXISTS idx_regulatory_docs_hnsw ON regulatory_docs USING hnsw (embedding vector_cosine_ops);
