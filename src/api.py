@@ -15,6 +15,7 @@ class QueryResponse(BaseModel):
     retries: int
     execution_trace: list
     latency_ms: float
+    citation: dict
 
 @app.post("/query-crag", response_model=QueryResponse)
 def execute_crag(request: QueryRequest):
@@ -38,11 +39,20 @@ def execute_crag(request: QueryRequest):
         latency = (time.perf_counter() - t0) * 1000
 
         return QueryResponse(
-            answer=final_state["generation"],
-            hallucination_passed=final_state["hallucination_check_passed"],
-            retries=final_state["retry_count"],
-            execution_trace=final_state["execution_trace"],
-            latency_ms=round(latency, 2)
+            with col1:
+                st.subheader("📋 Grounded Financial Synthesis")
+                st.write(data["answer"])
+                
+                if data.get("citations"):
+                    with st.expander("🔍 View Source Citations & Provenance"):
+                        for idx, cit in enumerate(data["citations"]):
+                            st.markdown(f"**[{idx+1}] Doc ID {cit['source_doc_id']}:**")
+                            st.info(f"*{cit['exact_quote']}*")
+
+                m1, m2, m3 = st.columns(3)
+                m1.metric("Pipeline Latency", f"{data['latency_ms']} ms")
+                m2.metric("Correction Loops", data["retries"])
+                m3.metric("Hallucination Audit", "PASSED" if data["hallucination_passed"] else "FLAGGED")
         )
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"CRAG Pipeline Error: {str(e)}")
