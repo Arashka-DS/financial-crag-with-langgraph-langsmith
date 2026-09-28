@@ -9,23 +9,23 @@ class QueryPayload(BaseModel):
 
 @app.post("/query")
 def execute_crag(payload: QueryPayload):
+    # Defensive LLM Guardrail
+    api_key = os.getenv("OPENAI_API_KEY", "")
+    if not api_key or not api_key.startswith("sk-"):
+        return {
+            "generation": "SYSTEM OFFLINE: OPENAI_API_KEY is missing or invalid. Please configure your .env file to enable the LangGraph LLM engine.",
+            "citations": [],
+            "retry_count": 0,
+            "documents_retrieved": 0,
+            "triggered_fallback": False
+        }
+        
     try:
         # Initialize LangGraph state
         initial_state = {
             "question": payload.question, 
             "retry_count": 0, 
             "web_fallback": False
-        }
-        
-        # Execute the self-correcting cyclic graph
-        final_state = crag_engine.invoke(initial_state)
-        
-        return {
-            "generation": final_state.get("generation"),
-            "citations": final_state.get("citations", []),
-            "retry_count": final_state.get("retry_count", 0),
-            "documents_retrieved": len(final_state.get("documents", [])),
-            "triggered_fallback": final_state.get("web_fallback", False)
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
