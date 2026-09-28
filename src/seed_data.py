@@ -1,5 +1,6 @@
 import os
 import psycopg2
+from pgvector.psycopg2 import register_vector
 from langchain_openai import OpenAIEmbeddings
 
 def bootstrap_database():
@@ -10,6 +11,7 @@ def bootstrap_database():
         user=os.getenv("DB_USER", "crag_admin"),
         password=os.getenv("DB_PASSWORD", "crag_password")
     )
+    register_vector(conn)
     cur = conn.cursor()
     
     docs = [
