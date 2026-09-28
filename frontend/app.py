@@ -36,7 +36,7 @@ if st.button("Audit Regulations", type="primary") and query:
                 st.subheader("Graph Execution Telemetry")
                 st.metric("Query Retries", res.get("retry_count", 0), delta="Max: 2")
                 st.json({
-                    "retrieved_chunks": len(res.get("documents", [])),
+                    "retrieved_chunks": res.get("documents_retrieved", 0),
                     "execution_status": "COMPLETED",
                     "model": "gpt-4o-mini"
                 })
