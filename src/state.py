@@ -12,13 +12,14 @@ class GroundedAnswer(BaseModel):
 class CRAGState(TypedDict):
     question: str
     transformed_query: str
-    documents: List[Dict]
+    documents: List[Dict[str, Any]]
     generation: str
-    citations: List[Dict]
+    citations: List[Dict[str, Any]]
     doc_relevance_passed: bool
     hallucination_check_passed: bool
     retry_count: int
     execution_trace: List[str]
+    web_fallback: bool
 
 class GradeDocuments(BaseModel):
     binary_score: str = Field(description="Documents are relevant to the question, 'yes' or 'no'")
