@@ -1,15 +1,23 @@
 from typing import List, Dict, TypedDict
 from pydantic import BaseModel, Field
 
-# LangGraph Global Execution State
+class Citation(BaseModel):
+    source_doc_id: int = Field(description="The ID of the document used for this specific claim.")
+    exact_quote: str = Field(description="The exact verbatim quote from the text that supports the claim.")
+
+class GroundedAnswer(BaseModel):
+    answer_text: str = Field(description="The comprehensive financial answer.")
+    citations: List[Citation] = Field(description="List of citations mapping claims to source documents.")
+
+# Update the Global State to hold citations
 class CRAGState(TypedDict):
     question: str
     transformed_query: str
     documents: List[Dict]
     generation: str
+    citations: List[dict] # NEW
     doc_relevance_passed: bool
     hallucination_check_passed: bool
-    answer_relevance_passed: bool
     retry_count: int
     execution_trace: List[str]
 
