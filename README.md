@@ -13,6 +13,15 @@ A production-grade Generative AI platform for querying volatile financial regula
 
 ## 🚀 Quick Start
 1. Configure `.env` with `OPENAI_API_KEY` and `LANGCHAIN_API_KEY`.
+
+Environment Variables (`.env`)
+```bash
+OPENAI_API_KEY=sk-...
+LANGCHAIN_API_KEY=lsv2_...
+LANGCHAIN_TRACING_V2=true
+LANGCHAIN_PROJECT=FinTech_CRAG
+```
+
 2. Spin up the Postgres vector infrastructure: `docker-compose up -d --build`
 3. Access the Streamlit Execution Inspector at `http://localhost:8501`.
 4. Enter a regulatory query. Monitor the LangGraph trace on the right panel, and expand the "Source Citations" accordion to verify the exact text quotes extracted by the LLM.
