@@ -1,9 +1,11 @@
+import os
 import streamlit as st
 import requests
 
 st.set_page_config(page_title="Financial Market CRAG Inspector", layout="wide")
 
-API_URL = "http://crag_api:8000"
+# Dynamically pull from Docker environment instead of hardcoding
+API_URL = os.getenv("API_URL", "http://crag_api:8000")
 
 st.title("⚖️ Central Bank Regulatory CRAG Engine")
 st.caption("Self-Correcting Retrieval-Augmented Generation with Deterministic Citation Provenance")
