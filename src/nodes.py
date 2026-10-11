@@ -40,7 +40,7 @@ def grade_documents_node(state):
     """Filters out irrelevant chunks to prevent context pollution."""
     llm = ChatOpenAI(model="llama3.2", temperature=0).with_structured_output(GradeDocuments)
     question = state["question"]
-    documents = state["documents"]
+    documents = state.get("documents", [])
     
     prompt = ChatPromptTemplate.from_messages([
         ("system", "You are an expert compliance auditor. Grade whether the document contains information directly relevant to the user query. Output 'yes' or 'no'."),
@@ -52,10 +52,13 @@ def grade_documents_node(state):
     
     for doc in documents:
         res = chain.invoke({"document": doc["text"], "question": question})
-        if "yes" in res.binary_score.lower():
+        
+        # Fault-tolerant parsing: Handle both dict (Ollama) and Pydantic (OpenAI) returns
+        score = res.get("binary_score", "") if isinstance(res, dict) else getattr(res, "binary_score", "")
+        
+        if "yes" in str(score).lower():
             valid_docs.append(doc)
             
-    # Trigger fallback if no documents passed the grade
     fallback_needed = len(valid_docs) == 0
     return {"documents": valid_docs, "web_fallback": fallback_needed}
 
@@ -80,7 +83,7 @@ def generate_node(state):
     """Synthesizes the answer while forcing strict Pydantic citation grounding."""
     llm = ChatOpenAI(model="llama3.2", temperature=0).with_structured_output(GroundedAnswer)
     question = state["question"]
-    docs = state["documents"]
+    docs = state.get("documents", [])
     
     if not docs:
         return {
@@ -96,7 +99,16 @@ def generate_node(state):
     ])
     
     res = (prompt | llm).invoke({"context": context_str, "question": question})
-    return {"generation": res.answer, "citations": [c.model_dump() for c in res.citations]}
+    
+    # Fault-tolerant parsing
+    if isinstance(res, dict):
+        answer = res.get("answer", "")
+        citations = res.get("citations", [])
+    else:
+        answer = getattr(res, "answer", "")
+        citations = [c.model_dump() for c in getattr(res, "citations", [])]
+        
+    return {"generation": answer, "citations": citations}
 
 def check_hallucinations_node(state):
     """Audits the generated answer against the source documents."""
@@ -116,8 +128,10 @@ def check_hallucinations_node(state):
     
     res = (prompt | llm).invoke({"context": context_str, "generation": generation})
     
-    # If the LLM catches a hallucination, overwrite the generation with a safeguard warning
-    if "no" in res.binary_score.lower():
+    # Fault-tolerant parsing
+    score = res.get("binary_score", "") if isinstance(res, dict) else getattr(res, "binary_score", "")
+    
+    if "no" in str(score).lower():
         return {
             "hallucination_check_passed": False,
             "generation": "SYSTEM SAFEGUARD: The generated response failed the hallucination audit and was blocked. Unverified claims detected.",
