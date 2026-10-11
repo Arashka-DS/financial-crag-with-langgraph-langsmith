@@ -24,11 +24,11 @@ def bootstrap_database():
     
     # Defensive Bootstrapping for CI/CD or testing without an API Key
     if not api_key:
-        print("WARNING: Valid OPENAI_API_KEY not detected. Generating deterministic mock vectors to keep the container alive...")
-        # Generate dummy 1536-dimensional vectors for pgvector schema satisfaction
-        embeddings_list = [[0.01] * 1536 for _ in range(len(docs))]
+        print("WARNING: Generating deterministic mock vectors to keep the container alive...")
+        # MUST BE 768 for nomic-embed-text
+        embeddings_list = [[0.01] * 768 for _ in range(len(docs))]
     else:
-        embeddings = OpenAIEmbeddings(model="text-embedding-3-small")
+        embeddings = OpenAIEmbeddings(model="nomic-embed-text")
         embeddings_list = [embeddings.embed_query(d["text"]) for d in docs]
     
     for idx, d in enumerate(docs):
