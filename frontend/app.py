@@ -41,7 +41,7 @@ if st.button("Audit Regulations", type="primary") and query:
                 else:
                     st.info("No explicit citations grounded in source text.")
 
-with c2:
+            with c2:
                 st.subheader("Graph Execution Telemetry")
                 st.metric("Query Retries", res.get("retry_count", 0), delta="Max: 2")
                 st.json({
