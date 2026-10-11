@@ -28,7 +28,10 @@ def bootstrap_database():
         # MUST BE 768 for nomic-embed-text
         embeddings_list = [[0.01] * 768 for _ in range(len(docs))]
     else:
-        embeddings = OpenAIEmbeddings(model="nomic-embed-text")
+        embeddings = OpenAIEmbeddings(
+            model="nomic-embed-text", 
+            check_embedding_ctx_length=False
+        )
         embeddings_list = [embeddings.embed_query(d["text"]) for d in docs]
     
     for idx, d in enumerate(docs):
