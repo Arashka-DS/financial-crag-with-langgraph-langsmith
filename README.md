@@ -28,5 +28,6 @@ OPENAI_API_BASE=http://host.docker.internal:11434/v1
 OPENAI_API_KEY=ollama_fake_key
 LANGSMITH_API_KEY=your_langsmith_key_here
 ```
+*(Reminder) To avoid Windows Docker networking issues, either define a Windows environment variable `OLLAMA_HOST` `0.0.0.0` or use any other similar methods that you see fit.*
 4. **Spin up the Infrastructure:** `docker compose --env-file proj.env up -d --build`
 5. **Access the Inspector:** Navigate to `http://localhost:8501`
