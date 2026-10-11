@@ -35,4 +35,4 @@ LANGSMITH_API_KEY=your_langsmith_key_here
 
 4. **Spin up the Infrastructure:** `docker compose --env-file proj.env up -d --build`
 
-5. **Access the Inspector:** Navigate to `http://localhost:9501`
+5. **Access the Inspector:** Navigate to `http://localhost:7501`
