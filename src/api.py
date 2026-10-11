@@ -20,27 +20,22 @@ def execute_crag(payload: QueryPayload):
             "triggered_fallback": False
         }
         
-    try:
-        initial_state = {
-            "question": payload.question, 
-            "retry_count": 0, 
-            "web_fallback": False
-        }
-        
-        # Execute the LangGraph state machine
-        result = crag_engine.invoke(initial_state)
-        
-        # Map the final state dictionary to the API response
-        return {
-            "generation": result.get("generation", "No answer generated."),
-            "citations": result.get("citations", []),
-            "retry_count": result.get("retry_count", 0),
-            "documents_retrieved": len(result.get("documents", [])),
-            "triggered_fallback": result.get("web_fallback", False)
-        }
-        
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    initial_state = {
+        "question": payload.question, 
+        "retry_count": 0, 
+        "web_fallback": False
+    }
+    
+    # Let FastAPI natively handle any crashes here so it prints to the Docker log
+    result = crag_engine.invoke(initial_state)
+    
+    return {
+        "generation": result.get("generation", "No answer generated."),
+        "citations": result.get("citations", []),
+        "retry_count": result.get("retry_count", 0),
+        "documents_retrieved": len(result.get("documents", [])),
+        "triggered_fallback": result.get("web_fallback", False)
+    }
 
 @app.get("/health")
 def health_check():
