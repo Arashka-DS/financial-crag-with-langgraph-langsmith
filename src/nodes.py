@@ -129,16 +129,26 @@ def check_hallucinations_node(state):
     context_str = "\n\n".join([f"[{d['doc_id']}]\n{d['text']}" for d in docs])
     
     prompt = ChatPromptTemplate.from_messages([
-        ("system", "You are a strict compliance auditor. Assess whether the generated answer is entirely grounded in the provided documents. Output 'yes' if it is perfectly grounded, or 'no' if it contains extrapolated, fabricated, or unverified claims."),
+        # Softened the prompt so the 3B model doesn't reject everything
+        ("system", "You are a grader assessing whether an answer is grounded in the provided documents. Output 'yes' if the answer is factually supported by the documents. Output 'no' ONLY if the answer invents or fabricates facts, numbers, or rules not found in the text. Ignore minor conversational filler."),
         ("human", "Documents:\n{context}\n\nGenerated Answer:\n{generation}")
     ])
     
-    res = (prompt | llm).invoke({"context": context_str, "generation": generation})
+    try:
+        res = (prompt | llm).invoke({"context": context_str, "generation": generation})
+    except Exception:
+        # If the structured output parser fails here, default to blocking the output to be safe
+        return {
+            "hallucination_check_passed": False,
+            "generation": "SYSTEM SAFEGUARD: Hallucination audit failed to parse. Output blocked.",
+            "citations": []
+        }
     
     # Fault-tolerant parsing
     score = res.get("binary_score", "") if isinstance(res, dict) else getattr(res, "binary_score", "")
     
-    if "no" in str(score).lower():
+    # Require an explicit "yes" to pass, rather than just checking for "no"
+    if "yes" not in str(score).lower():
         return {
             "hallucination_check_passed": False,
             "generation": "SYSTEM SAFEGUARD: The generated response failed the hallucination audit and was blocked. Unverified claims detected.",
