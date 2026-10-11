@@ -17,7 +17,7 @@ class Citation(BaseModel):
 
 class GroundedAnswer(BaseModel):
     answer: str = Field(description="Synthesized regulatory compliance response.")
-    citations: List[Citation] = Field(description="All supporting citations with verbatim quotes.")
+    citations: List[Citation] = Field(default_factory=list, description="All supporting citations with verbatim quotes. MUST be a valid JSON list/array.")
 
 class GradeHallucinations(BaseModel):
     """Binary score for hallucination check."""
@@ -94,11 +94,18 @@ def generate_node(state):
     context_str = "\n\n".join([f"[{d['doc_id']}]\n{d['text']}" for d in docs])
     
     prompt = ChatPromptTemplate.from_messages([
-        ("system", "You are a Central Bank Compliance Officer. Provide an authoritative answer based ONLY on the provided regulatory clauses. For every statement, supply a verbatim quote and its exact DOC_ID. Never extrapolate."),
+        ("system", "You are a Central Bank Compliance Officer. Provide an authoritative answer based ONLY on the provided regulatory clauses. For every statement, supply a verbatim quote and its exact DOC_ID. Never extrapolate. ALWAYS return the 'citations' field as a JSON array/list."),
         ("human", "Clauses:\n{context}\n\nQuery: {question}")
     ])
     
-    res = (prompt | llm).invoke({"context": context_str, "question": question})
+    try:
+        res = (prompt | llm).invoke({"context": context_str, "question": question})
+    except Exception as e:
+        # Graceful degradation if the 3B model hallucinates the JSON structure
+        return {
+            "generation": "SYSTEM SAFEGUARD: The local model formulated an answer but failed to format the citations into a valid JSON schema. Please retry the query.",
+            "citations": []
+        }
     
     # Fault-tolerant parsing
     if isinstance(res, dict):
