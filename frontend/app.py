@@ -40,7 +40,7 @@ if st.button("Audit Regulations", type="primary") and query:
                 st.json({
                     "retrieved_chunks": res.get("documents_retrieved", 0),
                     "execution_status": "COMPLETED",
-                    "model": "gpt-4o-mini"
+                    "model": "llama3.2"
                 })
         except requests.exceptions.RequestException as e:
             st.error(f"API Communication Error: {e}")
