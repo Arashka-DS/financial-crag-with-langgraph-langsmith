@@ -23,7 +23,7 @@ def bootstrap_database():
     api_key = os.getenv("OPENAI_API_KEY", "")
     
     # Defensive Bootstrapping for CI/CD or testing without an API Key
-    if not api_key or not api_key.startswith("sk-"):
+    if not api_key:
         print("WARNING: Valid OPENAI_API_KEY not detected. Generating deterministic mock vectors to keep the container alive...")
         # Generate dummy 1536-dimensional vectors for pgvector schema satisfaction
         embeddings_list = [[0.01] * 1536 for _ in range(len(docs))]
