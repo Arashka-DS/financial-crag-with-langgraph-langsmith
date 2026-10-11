@@ -113,7 +113,7 @@ def generate_node(state):
         citations = res.get("citations", [])
     else:
         answer = getattr(res, "answer", "")
-        citations = [c.model_dump() for c in getattr(res, "citations", [])]
+        citations = [c.dict() for c in getattr(res, "citations", [])]
         
     return {"generation": answer, "citations": citations}
 
