@@ -1,4 +1,4 @@
-from typing import List, Dict, TypedDict
+from typing import List, Dict, TypedDict, Any
 from pydantic import BaseModel, Field
 
 class Citation(BaseModel):
