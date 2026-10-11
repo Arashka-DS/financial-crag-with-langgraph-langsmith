@@ -15,11 +15,13 @@ A production-grade Generative AI platform for querying volatile financial regula
 This pipeline is configured to run 100% locally and privately using Ollama, avoiding paid API lock-in.
 
 1. **Install Ollama** on your host machine.
+   
 2. **Pull the required local models** by running these commands in your terminal:
    ```bash
    ollama run llama3.2
    ollama pull nomic-embed-text
    ```
+   
 3. **Environment Configuration:** A pre-configured `proj.env` file is included in the root directory. It automatically routes LangChain requests to your host's local Ollama instance via Docker's internal networking.
 
 *(Optional) If you wish to use LangSmith for graph tracing, edit `proj.env` and add your LangSmith API key*:
@@ -29,5 +31,7 @@ OPENAI_API_KEY=ollama_fake_key
 LANGSMITH_API_KEY=your_langsmith_key_here
 ```
 *(Reminder) To avoid Windows Docker networking issues, either define a Windows environment variable `OLLAMA_HOST` `0.0.0.0` or use any other similar methods that you see fit.*
+
 4. **Spin up the Infrastructure:** `docker compose --env-file proj.env up -d --build`
+
 5. **Access the Inspector:** Navigate to `http://localhost:8501`
