@@ -19,7 +19,7 @@ services:
 
   crag_api:
     build: .
-    container_name: crag_fastapi
+    container_name: crag_api
     ports:
       - "8000:8000"
     extra_hosts:
