@@ -17,7 +17,12 @@ if st.button("Audit Regulations", type="primary") and query:
     with st.spinner("Executing RRF search, grading context, and auditing citations..."):
         try:
             response = requests.post(f"{API_URL}/query", json={"question": query})
-            response.raise_for_status() # Catches 4xx and 5xx errors immediately
+            
+            # Print the actual backend error to the UI if it fails
+            if response.status_code != 200:
+                st.error(f"API Error ({response.status_code}): {response.text}")
+                st.stop()
+                
             res = response.json()
             
             c1, c2 = st.columns([3, 2])
