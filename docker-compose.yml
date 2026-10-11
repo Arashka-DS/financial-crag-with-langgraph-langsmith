@@ -22,15 +22,15 @@ services:
     container_name: crag_fastapi
     ports:
       - "8000:8000"
+    env_file: 
+      - .env
     environment:
       - DB_HOST=crag_postgres
       - DB_USER=crag_admin
       - DB_PASSWORD=crag_password
       - DB_NAME=crag_warehouse
-      - OPENAI_API_KEY=${OPENAI_API_KEY}
-      - LANGCHAIN_API_KEY=${LANGCHAIN_API_KEY}
-      - LANGCHAIN_TRACING_V2=true
-      - LANGCHAIN_PROJECT=FinTech_CRAG
+      - LANGSMITH_TRACING=true
+      - LANGSMITH_PROJECT=FinTech_CRAG
     volumes:
       - ./src:/app/src
     command: >
