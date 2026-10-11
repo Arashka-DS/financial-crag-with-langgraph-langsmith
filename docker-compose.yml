@@ -7,7 +7,7 @@ services:
       POSTGRES_PASSWORD: crag_password
       POSTGRES_DB: crag_warehouse
     ports:
-      - "5432:5432"
+      - "5532:5432"
     volumes:
       - ./init.sql:/docker-entrypoint-initdb.d/init.sql
       - pg_crag_data:/var/lib/postgresql/data
