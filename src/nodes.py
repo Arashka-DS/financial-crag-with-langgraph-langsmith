@@ -27,7 +27,10 @@ class GradeHallucinations(BaseModel):
 def retrieve_node(state):
     """Retrieves relevant clauses using native PostgreSQL Reciprocal Rank Fusion."""
     question = state["question"]
-    embeddings = OpenAIEmbeddings(model="nomic-embed-text")
+    embeddings = OpenAIEmbeddings(
+        model="nomic-embed-text",
+        check_embedding_ctx_length=False
+    )
     query_vector = embeddings.embed_query(question)
     
     docs = hybrid_search(query_text=question, query_embedding=query_vector, top_k=4)
