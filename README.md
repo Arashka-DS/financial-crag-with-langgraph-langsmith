@@ -11,17 +11,22 @@ A production-grade Generative AI platform for querying volatile financial regula
 3. **Structured Citation Provenance:** The generation node uses Pydantic structured outputs to bind exact verbatim quotes and `DOC_ID`s to every claim, providing complete transparency for compliance officers.
 4. **LangSmith Telemetry:** Full tracing of node transitions, token spend, and latency.
 
-## 🚀 Quick Start
-1. Configure `.env` with `OPENAI_API_KEY` and `LANGCHAIN_API_KEY`.
+## 🚀 Quick Start (Local LLM Setup)
+This pipeline is configured to run 100% locally and privately using Ollama, avoiding paid API lock-in.
 
-Environment Variables (`.env`)
+1. **Install Ollama** on your host machine.
+2. **Pull the required local models** by running these commands in your terminal:
+   ```bash
+   ollama run llama3.2
+   ollama pull nomic-embed-text
+   ```
+3. **Environment Configuration:** A pre-configured `proj.env` file is included in the root directory. It automatically routes LangChain requests to your host's local Ollama instance via Docker's internal networking.
+
+*(Optional) If you wish to use LangSmith for graph tracing, edit `proj.env` and add your LangSmith API key*:
 ```bash
-OPENAI_API_KEY=sk-...
-LANGCHAIN_API_KEY=lsv2_...
-LANGCHAIN_TRACING_V2=true
-LANGCHAIN_PROJECT=FinTech_CRAG
+OPENAI_API_BASE=[http://host.docker.internal:11434/v1](http://host.docker.internal:11434/v1)
+OPENAI_API_KEY=ollama_fake_key
+LANGSMITH_API_KEY=your_langsmith_key_here
 ```
-
-2. Spin up the Postgres vector infrastructure: `docker-compose up -d --build`
-3. Access the Streamlit Execution Inspector at `http://localhost:8501`.
-4. Enter a regulatory query. Monitor the LangGraph trace on the right panel, and expand the "Source Citations" accordion to verify the exact text quotes extracted by the LLM.
+4. **Spin up the Infrastructure:** `docker compose --env-file proj.env up -d --build`
+5. **Access the Inspector:** Navigate to `http://localhost:8501`
