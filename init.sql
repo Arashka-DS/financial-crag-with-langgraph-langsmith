@@ -7,7 +7,7 @@ CREATE TABLE IF NOT EXISTS regulatory_docs (
     title VARCHAR(255),
     document_text TEXT NOT NULL,
     fts_vector tsvector GENERATED ALWAYS AS (to_tsvector('simple', document_text)) STORED,
-    embedding vector(1536),
+    embedding vector(768),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
