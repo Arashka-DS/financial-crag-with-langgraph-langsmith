@@ -49,7 +49,7 @@ def grade_documents_node(state):
     
     for doc in documents:
         res = chain.invoke({"document": doc["text"], "question": question})
-        if res.binary_score.lower() == "yes":
+        if "yes" in res.binary_score.lower():
             valid_docs.append(doc)
             
     # Trigger fallback if no documents passed the grade
@@ -111,7 +111,7 @@ def check_hallucinations_node(state):
     res = (prompt | llm).invoke({"context": context_str, "generation": generation})
     
     # If the LLM catches a hallucination, overwrite the generation with a safeguard warning
-    if res.binary_score.lower() == "no":
+    if "no" in res.binary_score.lower():
         return {
             "hallucination_check_passed": False,
             "generation": "SYSTEM SAFEGUARD: The generated response failed the hallucination audit and was blocked. Unverified claims detected.",
