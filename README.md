@@ -26,6 +26,7 @@ This pipeline is configured to run 100% locally and privately using Ollama, avoi
 
 *(Optional) If you wish to use LangSmith for graph tracing, edit `proj.env` and add your LangSmith API key*:
 ```bash
+OPENAI_BASE_URL=http://host.docker.internal:11434/v1
 OPENAI_API_BASE=http://host.docker.internal:11434/v1
 OPENAI_API_KEY=ollama_fake_key
 LANGSMITH_API_KEY=your_langsmith_key_here
