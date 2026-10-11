@@ -1,6 +1,6 @@
 import os
 from typing import List
-from pydantic import BaseModel, Field
+from langchain_core.pydantic_v1 import BaseModel, Field
 from langchain_openai import ChatOpenAI, OpenAIEmbeddings
 from langchain_core.prompts import ChatPromptTemplate
 from src.database import hybrid_search
