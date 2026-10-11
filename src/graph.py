@@ -1,11 +1,10 @@
 from langgraph.graph import StateGraph, END
 from src.state import GraphState
-from src.nodes import retrieve_node, grade_documents_node, transform_query_node, generate_node
+from src.nodes import retrieve_node, grade_documents_node, transform_query_node, generate_node, check_hallucinations_node
 
 def decide_to_generate(state):
     """Evaluates whether to generate or enter query rewriting, bounded by max retries."""
     if state["web_fallback"]:
-        # Guardrail: Break out after 2 failed retries to prevent infinite token loops
         if state.get("retry_count", 0) >= 2:
             return "generate"
         return "transform_query"
@@ -19,6 +18,7 @@ def build_crag_graph():
     workflow.add_node("grade_documents", grade_documents_node)
     workflow.add_node("transform_query", transform_query_node)
     workflow.add_node("generate", generate_node)
+    workflow.add_node("check_hallucinations", check_hallucinations_node)
     
     # Build Edges
     workflow.set_entry_point("retrieve")
@@ -34,7 +34,10 @@ def build_crag_graph():
         }
     )
     workflow.add_edge("transform_query", "retrieve")
-    workflow.add_edge("generate", END)
+    
+    # Route generation through the audit gate before terminating
+    workflow.add_edge("generate", "check_hallucinations")
+    workflow.add_edge("check_hallucinations", END)
     
     return workflow.compile()
 
