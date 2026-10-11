@@ -11,7 +11,7 @@ st.title("⚖️ Central Bank Regulatory CRAG Engine")
 st.caption("Self-Correcting Retrieval-Augmented Generation with Deterministic Citation Provenance")
 
 query = st.text_input("Enter regulatory compliance query:", 
-                      value="What are the daily card-to-card transfer limits and shaparak paya cycles?")
+                      value="what are card transfer limits and shaparak paya cycles?")
 
 if st.button("Audit Regulations", type="primary") and query:
     with st.spinner("Executing RRF search, grading context, and auditing citations..."):
