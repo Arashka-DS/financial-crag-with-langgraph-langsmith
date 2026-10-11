@@ -41,7 +41,7 @@ if st.button("Audit Regulations", type="primary") and query:
                 else:
                     st.info("No explicit citations grounded in source text.")
 
-            with c2:
+with c2:
                 st.subheader("Graph Execution Telemetry")
                 st.metric("Query Retries", res.get("retry_count", 0), delta="Max: 2")
                 st.json({
@@ -49,5 +49,8 @@ if st.button("Audit Regulations", type="primary") and query:
                     "execution_status": "COMPLETED",
                     "model": "llama3.2"
                 })
+                
+                # Add the transparency disclaimer
+                st.info("ℹ️ **Architecture Note:** The Hallucination Audit Gate is currently bypassed. 3B parameter models experience high false-positive rates during zero-shot grading. See `nodes.py` to toggle this gate on for 8B+ models.")
         except requests.exceptions.RequestException as e:
             st.error(f"API Communication Error: {e}")
