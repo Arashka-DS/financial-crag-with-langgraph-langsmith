@@ -19,6 +19,11 @@ class GroundedAnswer(BaseModel):
     answer: str = Field(description="Synthesized regulatory compliance response.")
     citations: List[Citation] = Field(description="All supporting citations with verbatim quotes.")
 
+class GradeHallucinations(BaseModel):
+    """Binary score for hallucination check."""
+    binary_score: str = Field(description="Answer is entirely grounded in the facts, 'yes' or 'no'")
+    explanation: str = Field(description="Explanation of why the answer is grounded or hallucinated")
+
 def retrieve_node(state):
     """Retrieves relevant clauses using native PostgreSQL Reciprocal Rank Fusion."""
     question = state["question"]
@@ -86,3 +91,31 @@ def generate_node(state):
     
     res = (prompt | llm).invoke({"context": context_str, "question": question})
     return {"generation": res.answer, "citations": [c.model_dump() for c in res.citations]}
+
+def check_hallucinations_node(state):
+    """Audits the generated answer against the source documents."""
+    llm = ChatOpenAI(model="llama3.2", temperature=0).with_structured_output(GradeHallucinations)
+    docs = state.get("documents", [])
+    generation = state.get("generation", "")
+    
+    if not docs or not generation:
+        return {"hallucination_check_passed": False}
+        
+    context_str = "\n\n".join([f"[{d['doc_id']}]\n{d['text']}" for d in docs])
+    
+    prompt = ChatPromptTemplate.from_messages([
+        ("system", "You are a strict compliance auditor. Assess whether the generated answer is entirely grounded in the provided documents. Output 'yes' if it is perfectly grounded, or 'no' if it contains extrapolated, fabricated, or unverified claims."),
+        ("human", "Documents:\n{context}\n\nGenerated Answer:\n{generation}")
+    ])
+    
+    res = (prompt | llm).invoke({"context": context_str, "generation": generation})
+    
+    # If the LLM catches a hallucination, overwrite the generation with a safeguard warning
+    if res.binary_score.lower() == "no":
+        return {
+            "hallucination_check_passed": False,
+            "generation": "SYSTEM SAFEGUARD: The generated response failed the hallucination audit and was blocked. Unverified claims detected.",
+            "citations": []
+        }
+        
+    return {"hallucination_check_passed": True}
