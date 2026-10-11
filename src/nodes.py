@@ -63,11 +63,14 @@ def transform_query_node(state):
     current_retry = state.get("retry_count", 0) + 1
     
     prompt = ChatPromptTemplate.from_messages([
-        ("system", "You are a financial query optimizer. Rewrite the query to optimize for regulatory search, standardizing banking terminology, circular names, and acronyms."),
+        # Added a strict negative constraint to prevent conversational fluff
+        ("system", "You are a financial query optimizer. Rewrite the query to optimize for regulatory search, standardizing banking terminology, circular names, and acronyms. ONLY output the optimized query string without any conversational text or quotes."),
         ("human", "Initial Query: {question}\n\nFormulate an optimized semantic search query:")
     ])
     
-    better_query = llm.invoke(prompt.format(question=question)).content
+    # Properly chain the prompt to preserve System/Human message roles in the API call
+    better_query = (prompt | llm).invoke({"question": question}).content
+    
     return {"question": better_query, "retry_count": current_retry}
 
 def generate_node(state):
