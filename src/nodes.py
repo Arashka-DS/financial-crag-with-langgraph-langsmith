@@ -22,7 +22,7 @@ class GroundedAnswer(BaseModel):
 def retrieve_node(state):
     """Retrieves relevant clauses using native PostgreSQL Reciprocal Rank Fusion."""
     question = state["question"]
-    embeddings = OpenAIEmbeddings(model="text-embedding-3-small")
+    embeddings = OpenAIEmbeddings(model="nomic-embed-text")
     query_vector = embeddings.embed_query(question)
     
     docs = hybrid_search(query_text=question, query_embedding=query_vector, top_k=4)
@@ -30,7 +30,7 @@ def retrieve_node(state):
 
 def grade_documents_node(state):
     """Filters out irrelevant chunks to prevent context pollution."""
-    llm = ChatOpenAI(model="gpt-4o-mini", temperature=0).with_structured_output(GradeDocuments)
+    llm = ChatOpenAI(model="llama3.2", temperature=0).with_structured_output(GradeDocuments)
     question = state["question"]
     documents = state["documents"]
     
@@ -53,7 +53,7 @@ def grade_documents_node(state):
 
 def transform_query_node(state):
     """Rewrites the query using financial taxonomy and increments the loop counter."""
-    llm = ChatOpenAI(model="gpt-4o-mini", temperature=0)
+    llm = ChatOpenAI(model="llama3.2", temperature=0)
     question = state["question"]
     current_retry = state.get("retry_count", 0) + 1
     
@@ -67,7 +67,7 @@ def transform_query_node(state):
 
 def generate_node(state):
     """Synthesizes the answer while forcing strict Pydantic citation grounding."""
-    llm = ChatOpenAI(model="gpt-4o-mini", temperature=0).with_structured_output(GroundedAnswer)
+    llm = ChatOpenAI(model="llama3.2", temperature=0).with_structured_output(GroundedAnswer)
     question = state["question"]
     docs = state["documents"]
     
