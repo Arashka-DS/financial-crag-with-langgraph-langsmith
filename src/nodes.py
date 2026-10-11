@@ -118,8 +118,9 @@ def generate_node(state):
     return {"generation": answer, "citations": citations}
 
 def check_hallucinations_node(state):
-    """Audits the generated answer against the source documents."""
-    llm = ChatOpenAI(model="llama3.2", temperature=0).with_structured_output(GradeHallucinations)
+    """Audits the generated answer against the source documents using raw text to save VRAM."""
+    # Removed .with_structured_output() so the 3B model doesn't choke on JSON formatting
+    llm = ChatOpenAI(model="llama3.2", temperature=0)
     docs = state.get("documents", [])
     generation = state.get("generation", "")
     
@@ -129,26 +130,23 @@ def check_hallucinations_node(state):
     context_str = "\n\n".join([f"[{d['doc_id']}]\n{d['text']}" for d in docs])
     
     prompt = ChatPromptTemplate.from_messages([
-        # Softened the prompt so the 3B model doesn't reject everything
-        ("system", "You are a grader assessing whether an answer is grounded in the provided documents. Output 'yes' if the answer is factually supported by the documents. Output 'no' ONLY if the answer invents or fabricates facts, numbers, or rules not found in the text. Ignore minor conversational filler."),
+        ("system", "You are a strict grader assessing whether an answer is grounded in the documents. Output the exact word 'yes' if the answer is factually supported by the documents. Output 'no' if it invents or fabricates facts. DO NOT output JSON. DO NOT output explanations. Just the word 'yes' or 'no'."),
         ("human", "Documents:\n{context}\n\nGenerated Answer:\n{generation}")
     ])
     
     try:
+        # Get raw text content back instead of a parsed dictionary
         res = (prompt | llm).invoke({"context": context_str, "generation": generation})
+        score = res.content.strip().lower()
     except Exception:
-        # If the structured output parser fails here, default to blocking the output to be safe
         return {
             "hallucination_check_passed": False,
-            "generation": "SYSTEM SAFEGUARD: Hallucination audit failed to parse. Output blocked.",
+            "generation": "SYSTEM SAFEGUARD: Hallucination audit failed to execute. Output blocked.",
             "citations": []
         }
     
-    # Fault-tolerant parsing
-    score = res.get("binary_score", "") if isinstance(res, dict) else getattr(res, "binary_score", "")
-    
-    # Require an explicit "yes" to pass, rather than just checking for "no"
-    if "yes" not in str(score).lower():
+    # Explicit raw string check
+    if "yes" not in score:
         return {
             "hallucination_check_passed": False,
             "generation": "SYSTEM SAFEGUARD: The generated response failed the hallucination audit and was blocked. Unverified claims detected.",
