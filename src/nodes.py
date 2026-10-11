@@ -100,20 +100,23 @@ def generate_node(state):
     
     try:
         res = (prompt | llm).invoke({"context": context_str, "question": question})
-    except Exception as e:
-        # Graceful degradation if the 3B model hallucinates the JSON structure
-        return {
-            "generation": "SYSTEM SAFEGUARD: The local model formulated an answer but failed to format the citations into a valid JSON schema. Please retry the query.",
-            "citations": []
-        }
-    
-    # Fault-tolerant parsing
-    if isinstance(res, dict):
-        answer = res.get("answer", "")
-        citations = res.get("citations", [])
-    else:
-        answer = getattr(res, "answer", "")
-        citations = [c.dict() for c in getattr(res, "citations", [])]
+        
+        # Fault-tolerant parsing for successful JSON
+        if isinstance(res, dict):
+            answer = res.get("answer", "")
+            citations = res.get("citations", [])
+        else:
+            answer = getattr(res, "answer", "")
+            citations = [c.dict() for c in getattr(res, "citations", [])]
+            
+    except Exception:
+        # Graceful Degradation: If the 3B model chokes on the nested JSON schema,
+        # drop the structured output requirement and just ask for the raw text answer.
+        raw_llm = ChatOpenAI(model="llama3.2", temperature=0)
+        raw_res = (prompt | raw_llm).invoke({"context": context_str, "question": question})
+        
+        answer = raw_res.content + "\n\n*(System Telemetry: The 3B model successfully formulated this answer but lacked the parameter depth to structure its extracted citations into the strict JSON array required by the UI.)*"
+        citations = []
         
     return {"generation": answer, "citations": citations}
 
