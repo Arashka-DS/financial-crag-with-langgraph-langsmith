@@ -22,6 +22,8 @@ services:
     container_name: crag_fastapi
     ports:
       - "8000:8000"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"  # FOR WSL TO REACH WINDOWS OLLAMA
     env_file: 
       - proj.env
     environment:
